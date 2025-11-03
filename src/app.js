@@ -148,6 +148,30 @@ const createTodo = async (req, res) => {
     }
 }
 
+const deleteTodo = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const todoId = req.params.id;
+
+        if (!todoId) {
+             return res.status(400).json({ error: "Task ID is mandatory." });
+        }
+        
+        const sql = 'DELETE FROM "todos" WHERE id = $1 AND user_id = $2 RETURNING id';
+        const result = await pool.query(sql, [todoId, userId]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Task not found or access denied.' });
+        }
+
+        return res.status(204).send();
+    } catch (error) {
+        console.error("Failed to delete TODO:", error);
+        return res.status(500).json({ error: 'Failed to delete TODO.' });
+    }
+}
+
 app.get('/todos', authenticateToken, getUserTodos);
 app.post('/register', register);
 app.post('/login', login);
