@@ -4,16 +4,30 @@ export const getUserTodos = async (req, res) => {
     try {
         const userId = req.user.id; 
 
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        const offset = (page - 1) * limit;
+
         const sql = `
             SELECT id, title, description, is_completed, created_at 
             FROM "todos" 
             WHERE user_id = $1
-            ORDER BY created_at DESC;
+            ORDER BY created_at DESC
+            LIMIT $2
+            OFFSET $3;
         `;
+
+        const values = [userId, limit, offset];
         
-        const result = await pool.query(sql, [userId]);
+        const result = await pool.query(sql, values);
         
-        return res.json(result.rows);
+        return res.json({
+            'data': result.rows,
+            'page': page,
+            'limit': limit,
+            "total": result.rows.length,
+        });
 
     } catch (error) {
         console.error("Failed to get user TODOs:", error);
@@ -31,7 +45,7 @@ export const createTodo = async (req, res) => {
             return res.status(400).json({ error: "Title and description are mandatory." });
         }
 
-        const sql = 'INSERT INTO "todos" (title, description, is_completed, created_at, user_id) VALUES ($1, $2, FALSE, NOW(), $3) RETURNING id, title, description, is_completed, created_at, user_id';
+        const sql = 'INSERT INTO "todos" (title, description, is_completed, created_at, user_id) VALUES ($1, $2, FALSE, NOW(), $3) RETURNING id, title, description';
 
         const values = [title, description, userId];
 
@@ -40,8 +54,8 @@ export const createTodo = async (req, res) => {
 
         res.status(201).json({
             id: newTodo.id,
-            title: title,
-            description: description,
+            title: newTodo.title,
+            description: newTodo.description,
         });
     } catch (error) {
         return res.status(500).json({ error: 'Failed to create TODO.' });
@@ -66,7 +80,7 @@ export const updateTodo = async (req, res) => {
                 description = $2
             WHERE 
                 id = $3 AND user_id = $4
-            RETURNING id, title, description, user_id;
+            RETURNING id, title, description;
         `;
         
         const values = [
@@ -86,8 +100,8 @@ export const updateTodo = async (req, res) => {
 
         return res.status(200).json({
             id: updatedTodo.id,
-            title: title,
-            description: description,
+            title: updatedTodo.title,
+            description: updatedTodo.description,
         });
         
     } catch (error) {

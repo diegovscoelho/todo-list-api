@@ -6,8 +6,8 @@ export const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({ error: "Email and password are mandatory." });
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: "Name, email and password are mandatory." });
         }
 
         const userExists = await pool.query('SELECT id FROM "users" WHERE email = $1', [email]);
@@ -17,7 +17,7 @@ export const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const sql = 'INSERT INTO "users" (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email';
+        const sql = 'INSERT INTO "users" (name, email, password) VALUES ($1, $2, $3) RETURNING id, email';
         const result = await pool.query(sql, [name, email, hashedPassword]);
         const newUser = result.rows[0];
 
@@ -31,6 +31,7 @@ export const register = async (req, res) => {
             token: token
         });
     } catch (error) {
+        console.log(error);
         return res.status(500).json({ error: 'Failed to create user.' });
     }
 }
@@ -61,8 +62,6 @@ export const login = async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
-
-        const { password: _, ...userInfo } = user;
 
         return res.status(200).json({
             token: token
