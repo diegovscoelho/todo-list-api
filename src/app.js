@@ -3,7 +3,7 @@ import authRoutes from './routes/authRoutes.js';
 import todoRoutes from './routes/todoRoutes.js';
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
